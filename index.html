@@ -67,3 +67,60 @@
         Papa.parse(sheetUrl, {
             download: true,
             header: true,
+            skipEmptyLines: true,
+            complete: function(results) {
+                renderMarkers(results.data);
+                document.getElementById('info-content').innerHTML = "เลือกสาขาบนแผนที่เพื่อดูรายละเอียด";
+            }
+        });
+    }
+
+    function renderMarkers(branches) {
+        branches.forEach(function(row) {
+            const lat = parseFloat(row.Lat || row.B); 
+            const lng = parseFloat(row.Lng || row.Long || row.C);
+
+            if (!isNaN(lat) && !isNaN(lng)) {
+                // ใช้ไอคอนสีแดงที่สร้างไว้
+                var marker = L.marker([lat, lng], {icon: redIcon}).addTo(map);
+                
+                marker.on('click', function() {
+                    document.getElementById('info-content').innerHTML = `
+                        <p style="font-size:18px; color:#d32f2f; margin-top:0;"><strong>${row.Name || 'ไม่ระบุชื่อ'}</strong></p>
+                        <p><strong>👥 จำนวนคน:</strong> ${row.People || '0'} คน</p>
+                        <p><strong>📝 หมายเหตุ:</strong> ${row.Note || '-'}</p>
+                        <hr>
+                        <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" 
+                           target="_blank" style="display:inline-block; color: white; background: #34a853; padding: 10px 18px; border-radius: 5px; text-decoration: none; font-size: 14px; font-weight: bold;">
+                           🚗 นำทางด้วย Google Maps
+                        </a>
+                    `;
+                    map.setView([lat, lng], 15);
+                });
+            }
+        });
+    }
+
+    function findMe() {
+        if (!navigator.geolocation) {
+            alert("เบราว์เซอร์ไม่รองรับระบบพิกัด");
+            return;
+        }
+        map.locate({setView: true, maxZoom: 16});
+    }
+
+    map.on('locationfound', function(e) {
+        if (userMarker) { map.removeLayer(userMarker); }
+        userMarker = L.marker(e.latlng, {icon: userIcon}).addTo(map)
+            .bindPopup("คุณอยู่ที่นี่").openPopup();
+    });
+
+    map.on('locationerror', function() {
+        alert("กรุณาเปิดการเข้าถึงตำแหน่ง (Location Access)");
+    });
+
+    loadData();
+</script>
+
+</body>
+</html>
