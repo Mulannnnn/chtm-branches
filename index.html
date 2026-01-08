@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>สาขาใกล้ฉัน</title>
+    <title>ตรวจสอบสาขาใกล้บ้าน</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -33,21 +33,20 @@
 </div>
 
 <div id="controls">
-    <button class="btn" onclick="findMe()">สาขาใกล้ฉัน</button>
+    <button class="btn" onclick="findMe()">📍 สาขาใกล้ฉัน</button>
 </div>
 
 <script>
-    // 1. ใส่ลิงก์ CSV จาก Google Sheets ของคุณที่นี่
+    // 1. ลิงก์ CSV จาก Google Sheets
     const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRY_i5LWW_vfD8Dsxd2kwiLN50ZZhg9LZcK-JRMoZZu3TXYolGI4JDGbUE9J51z-IMrEQvtjkLQyqXP/pub?output=csv';
 
-    // 2. ตั้งค่าแผนที่
+    // 2. ตั้งค่าแผนที่เริ่มต้น
     var map = L.map('map').setView([13.7563, 100.5018], 6);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap'
     }).addTo(map);
-csv
-    
-    // 3. กำหนดไอคอนบริษัท (ใช้ชื่อไฟล์ที่คุณอัปโหลดขึ้น GitHub)
+
+    // 3. กำหนดไอคอนบริษัท (ใช้ไฟล์ที่อัปโหลดบน GitHub)
     var companyIcon = L.icon({
         iconUrl: 'chtm-logo-40.png', 
         iconSize: [40, 40],
@@ -55,7 +54,7 @@ csv
         popupAnchor: [0, -40]
     });
 
-    // 4. กำหนดไอคอนผู้ใช้ (รูปคนสีเหลือง Pegman)
+    // 4. กำหนดไอคอนผู้ใช้ (รูปคนสีเหลือง)
     var userIcon = L.icon({
         iconUrl: 'https://maps.gstatic.com/mapfiles/cb/pegman_64.png',
         iconSize: [45, 45],
@@ -73,6 +72,10 @@ csv
             complete: function(results) {
                 renderMarkers(results.data);
                 document.getElementById('info-content').innerHTML = "เลือกสาขาบนแผนที่เพื่อดูรายละเอียด";
+            },
+            error: function(err) {
+                console.error("Error loading CSV:", err);
+                document.getElementById('info-content').innerHTML = "เกิดข้อผิดพลาดในการโหลดข้อมูล";
             }
         });
     }
@@ -80,12 +83,11 @@ csv
     // 6. ปักหมุดสาขา
     function renderMarkers(branches) {
         branches.forEach(function(row) {
-            // ดึงค่า Lat/Long (รองรับทั้ง Lat/Lng และ Lat/Long ตามตารางของคุณ)
+            // ดึงค่าพิกัด รองรับทั้งคอลัมน์ Lat, Lng หรือ B, C ตามตารางของคุณ
             const lat = parseFloat(row.Lat || row.B); 
             const lng = parseFloat(row.Lng || row.Long || row.C);
 
             if (!isNaN(lat) && !isNaN(lng)) {
-                // ใส่ไอคอนบริษัทที่นี่
                 var marker = L.marker([lat, lng], {icon: companyIcon}).addTo(map);
                 
                 marker.on('click', function() {
@@ -114,7 +116,6 @@ csv
         map.locate({setView: true, maxZoom: 16});
     }
 
-    // เมื่อหาตำแหน่งเจอ ให้วางหมุดรูปคนสีเหลือง
     map.on('locationfound', function(e) {
         if (userMarker) { map.removeLayer(userMarker); }
         userMarker = L.marker(e.latlng, {icon: userIcon}).addTo(map)
@@ -125,7 +126,7 @@ csv
         alert("กรุณาเปิดการเข้าถึงตำแหน่ง (Location Access)");
     });
 
-    // เริ่มทำงาน
+    // เริ่มการทำงาน
     loadData();
 </script>
 
