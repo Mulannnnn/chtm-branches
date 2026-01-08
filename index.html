@@ -2,72 +2,57 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Check Branch Near Me</title>
+    <title>ระบบเช็คสาขาใกล้บ้าน</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="robots" content="noindex"> <style>
-        body { margin: 0; font-family: 'Helvetica', sans-serif; display: flex; flex-direction: column; height: 100vh; }
-        #header { padding: 15px; background: #fff; border-bottom: 1px solid #eee; text-align: center; }
-        #main-container { display: flex; flex: 1; overflow: hidden; }
-        #map-area { flex: 1; position: relative; }
-        iframe { width: 100%; height: 100%; border: none; }
-        
-        /* แถบข้อมูลด้านข้าง */
-        #details-panel { width: 300px; padding: 20px; background: #f9f9f9; border-left: 1px solid #ddd; overflow-y: auto; }
-        
-        /* ปุ่มกดด้านล่าง */
-        #controls { padding: 15px; background: #fff; border-top: 1px solid #eee; display: flex; justify-content: center; }
-        .btn-locate { 
-            background: #007bff; color: white; border: none; padding: 12px 25px; 
-            border-radius: 30px; cursor: pointer; font-size: 16px; font-weight: bold;
-        }
-
-        /* ปรับแต่งให้รองรับมือถือ */
-        @media (max-width: 768px) {
-            #main-container { flex-direction: column; }
-            #details-panel { width: 100%; height: 200px; border-left: none; border-top: 1px solid #ddd; }
-        }
+    <meta name="robots" content="noindex">
+    <style>
+        body { margin: 0; font-family: sans-serif; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        #header { padding: 10px; background: #fff; text-align: center; border-bottom: 1px solid #ddd; font-weight: bold; }
+        #main { display: flex; flex: 1; position: relative; }
+        #map-frame { flex: 1; border: none; width: 100%; height: 100%; }
+        #side-panel { width: 300px; padding: 20px; background: #fafafa; border-left: 1px solid #ddd; overflow-y: auto; }
+        #controls { padding: 15px; border-top: 1px solid #ddd; text-align: center; background: white; }
+        .btn { background: #1a73e8; color: white; border: none; padding: 12px 24px; border-radius: 25px; cursor: pointer; font-size: 16px; }
+        @media (max-width: 768px) { #main { flex-direction: column; } #side-panel { width: 100%; height: 150px; border-left: none; border-top: 1px solid #ddd; } }
     </style>
 </head>
 <body>
 
-<div id="header">
-    <strong>🔍 ตรวจสอบสาขาใกล้บ้าน</strong>
-</div>
+<div id="header">🔍 ตรวจสอบสาขาใกล้บ้าน</div>
 
-<div id="main-container">
-    <div id="map-area">
-        <iframe src="https://www.google.com/maps/d/embed?mid=YOUR_MAP_ID_HERE"></iframe>
-    </div>
+<div id="main">
+    <iframe id="map-frame" src="https://www.google.com/maps/d/embed?mid=1cULs1tx-fxJJKu2K2jeN-vHUxn5XMo0&ehbc=2E312F"></iframe>
     
-    <div id="details-panel">
+    <div id="side-panel">
         <h3>รายละเอียด</h3>
         <p>📍 คลิกที่หมุดในแผนที่เพื่อดูข้อมูล</p>
         <hr>
-        <div id="info">
-            <p>👥 <strong>จำนวนคน:</strong> <span id="count">-</span></p>
-            <p>📝 <strong>หมายเหตุ:</strong> <span id="note">-</span></p>
-            <p>🔗 <a id="link" href="#" target="_blank">เปิดใน Google Maps</a></p>
-        </div>
+        <p>👥 จำนวนคน: -</p>
+        <p>📝 หมายเหตุ: -</p>
     </div>
 </div>
 
 <div id="controls">
-    <button class="btn-locate" onclick="findMe()">📍 เช็คพิกัดใกล้ฉัน</button>
+    <button class="btn" onclick="updateMapToCurrentLocation()">📍 เช็คพิกัดใกล้ฉัน</button>
 </div>
 
 <script>
-    function findMe() {
+    function updateMapToCurrentLocation() {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(function(position) {
                 const lat = position.coords.latitude;
                 const lng = position.coords.longitude;
-                // เปิด Google Maps ไปยังตำแหน่งปัจจุบันของ User
-                window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`, '_blank');
+                const mapFrame = document.getElementById('map-frame');
+                
+                const newUrl = `https://www.google.com/maps?q=${lat},${lng}&z=15&output=embed`;
+                mapFrame.src = newUrl;
+                
+                alert("กำลังเลื่อนไปยังตำแหน่งปัจจุบันของคุณ...");
             }, function() {
-                alert("กรุณาเปิด Permission เพื่อเข้าถึงตำแหน่งของคุณ");
+                alert("กรุณากด 'อนุญาต' ให้เข้าถึงตำแหน่ง (Location)");
             });
         } else {
-            alert("เบราว์เซอร์ไม่รองรับ");
+            alert("เบราว์เซอร์ของคุณไม่รองรับการระบุตำแหน่ง");
         }
     }
 </script>
