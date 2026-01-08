@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>ระบบตรวจสอบสาขา Real-time</title>
+    <title>สาขาใกล้ฉัน</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -22,7 +22,7 @@
 </head>
 <body>
 
-<div id="header">🔍 ตรวจสอบสาขาใกล้บ้าน (ข้อมูลจาก Google Sheets)</div>
+<div id="header">🔍 ตรวจสอบสาขาใกล้บ้าน</div>
 
 <div id="main">
     <div id="map"></div>
@@ -33,20 +33,38 @@
 </div>
 
 <div id="controls">
-    <button class="btn" onclick="findMe()">📍 เช็คพิกัดใกล้ฉัน</button>
+    <button class="btn" onclick="findMe()">สาขาใกล้ฉัน</button>
 </div>
 
 <script>
     // 1. ใส่ลิงก์ CSV จาก Google Sheets ของคุณที่นี่
     const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRY_i5LWW_vfD8Dsxd2kwiLN50ZZhg9LZcK-JRMoZZu3TXYolGI4JDGbUE9J51z-IMrEQvtjkLQyqXP/pub?output=csv';
 
+    // 2. ตั้งค่าแผนที่
     var map = L.map('map').setView([13.7563, 100.5018], 6);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap'
     }).addTo(map);
+csv
+    
+    // 3. กำหนดไอคอนบริษัท (ใช้ชื่อไฟล์ที่คุณอัปโหลดขึ้น GitHub)
+    var companyIcon = L.icon({
+        iconUrl: 'chtm-logo-40.png', 
+        iconSize: [40, 40],
+        iconAnchor: [20, 40],
+        popupAnchor: [0, -40]
+    });
+
+    // 4. กำหนดไอคอนผู้ใช้ (รูปคนสีเหลือง Pegman)
+    var userIcon = L.icon({
+        iconUrl: 'https://maps.gstatic.com/mapfiles/cb/pegman_64.png',
+        iconSize: [45, 45],
+        iconAnchor: [22, 45]
+    });
 
     var userMarker;
 
+    // 5. โหลดข้อมูลจาก Google Sheets
     function loadData() {
         Papa.parse(sheetUrl, {
             download: true,
@@ -59,15 +77,17 @@
         });
     }
 
+    // 6. ปักหมุดสาขา
     function renderMarkers(branches) {
         branches.forEach(function(row) {
-            // ดึงค่าโดยไม่สนชื่อหัวตาราง (ใช้การตรวจสอบชื่อคอลัมน์ที่น่าจะเป็นไปได้)
-            // จากตารางของคุณ: B คือ Lat (12.xx), C คือ Long (102.xx)
-            const lat = parseFloat(row.Lat || row.Lng || row.B); 
-            const lng = parseFloat(row.Long || row.Lng_1 || row.C);
+            // ดึงค่า Lat/Long (รองรับทั้ง Lat/Lng และ Lat/Long ตามตารางของคุณ)
+            const lat = parseFloat(row.Lat || row.B); 
+            const lng = parseFloat(row.Lng || row.Long || row.C);
 
             if (!isNaN(lat) && !isNaN(lng)) {
-                var marker = L.marker([lat, lng]).addTo(map);
+                // ใส่ไอคอนบริษัทที่นี่
+                var marker = L.marker([lat, lng], {icon: companyIcon}).addTo(map);
+                
                 marker.on('click', function() {
                     document.getElementById('info-content').innerHTML = `
                         <p style="font-size:18px; color:#1a73e8; margin-top:0;"><strong>${row.Name || 'ไม่ระบุชื่อ'}</strong></p>
@@ -75,7 +95,7 @@
                         <p><strong>📝 หมายเหตุ:</strong> ${row.Note || '-'}</p>
                         <hr>
                         <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" 
-                           target="_blank" style="display:inline-block; color: white; background: #34a853; padding: 8px 15px; border-radius: 5px; text-decoration: none; font-size: 14px;">
+                           target="_blank" style="display:inline-block; color: white; background: #34a853; padding: 10px 18px; border-radius: 5px; text-decoration: none; font-size: 14px; font-weight: bold;">
                            🚗 นำทางด้วย Google Maps
                         </a>
                     `;
@@ -85,6 +105,7 @@
         });
     }
 
+    // 7. ฟังก์ชันหาตำแหน่งปัจจุบัน
     function findMe() {
         if (!navigator.geolocation) {
             alert("เบราว์เซอร์ไม่รองรับระบบพิกัด");
@@ -93,16 +114,18 @@
         map.locate({setView: true, maxZoom: 16});
     }
 
+    // เมื่อหาตำแหน่งเจอ ให้วางหมุดรูปคนสีเหลือง
     map.on('locationfound', function(e) {
         if (userMarker) { map.removeLayer(userMarker); }
-        userMarker = L.circleMarker(e.latlng, {color: 'red', radius: 10, fillOpacity: 0.9}).addTo(map)
+        userMarker = L.marker(e.latlng, {icon: userIcon}).addTo(map)
             .bindPopup("คุณอยู่ที่นี่").openPopup();
     });
 
     map.on('locationerror', function() {
-        alert("กรุณาเปิดการเข้าถึงตำแหน่ง (Location)");
+        alert("กรุณาเปิดการเข้าถึงตำแหน่ง (Location Access)");
     });
 
+    // เริ่มทำงาน
     loadData();
 </script>
 
