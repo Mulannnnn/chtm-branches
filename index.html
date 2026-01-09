@@ -2,127 +2,65 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <title>ระบบตรวจสอบสาขา Real-time</title>
+    <title>ระบบตรวจสอบสาขา</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        :root {
-            --primary: #5f0e8a;
-            --accent: #f5eb36;
-            --dark: #242222;
-            --white: #ffffff;
-            --error: #f90000;
-        }
-
-        body { 
-            margin: 0; 
-            font-family: 'Noto Sans Thai', sans-serif; 
-            display: flex; 
-            flex-direction: column; 
-            height: 100vh; 
-            background: #f4f4f4;
-            color: var(--dark);
-        }
-
-        #header { 
-            padding: 15px 20px; 
-            background: var(--white); 
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            z-index: 1000;
-        }
-
-        .logo-text { font-weight: 700; font-size: 1.2rem; color: var(--primary); }
-
-        #main { display: flex; flex: 1; overflow: hidden; position: relative; }
-
+        :root { --primary: #5f0e8a; --accent: #f5eb36; --error: #f90000; }
+        body { margin: 0; font-family: 'Noto Sans Thai', sans-serif; display: flex; flex-direction: column; height: 100vh; }
+        #header { padding: 15px; background: white; display: flex; justify-content: space-between; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 1000; }
+        #main { display: flex; flex: 1; position: relative; overflow: hidden; }
         #map { flex: 1; z-index: 1; }
-
-        #side-panel { 
-            width: 380px; 
-            background: var(--white); 
-            border-left: 1px solid #eee; 
-            overflow-y: auto; 
-            z-index: 10;
-        }
-
-        .panel-header {
-            padding: 20px;
-            background: var(--white);
-            position: sticky;
-            top: 0;
-            border-bottom: 2px solid var(--accent);
-            z-index: 11;
-        }
-
-        .branch-card {
-            padding: 20px;
-            border-bottom: 1px solid #eee;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .branch-card:hover { background: #fdfdfd; }
-        .branch-title { font-weight: 700; font-size: 1.1rem; margin-bottom: 5px; color: var(--dark); }
-
-        /* FAB Location Button - ปรับให้ลอยพ้นขอบแผนที่ */
+        #side-panel { width: 350px; background: white; border-left: 1px solid #ddd; overflow-y: auto; z-index: 10; }
+        .branch-card { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; }
+        .branch-card:hover { background: #f9f9f9; }
+        
+        /* แก้ไขตำแหน่งปุ่มให้ลอยเหนือ Side Panel และเห็นชัด */
         .fab-location {
             position: absolute;
-            bottom: 30px;
-            right: 400px; /* ขยับจากขวาเพื่อหลบ Side Panel 380px */
-            width: 60px;
-            height: 60px;
+            bottom: 25px;
+            right: 370px; /* ขยับออกมาจากแถบข้าง */
+            width: 55px;
+            height: 55px;
             background: var(--accent);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
             cursor: pointer;
             z-index: 999;
-            border: 2px solid var(--white);
         }
 
+        /* Pin สีแดง */
         .red-pin {
             width: 20px;
             height: 20px;
-            background-color: var(--error);
+            background: var(--error);
             border: 2px solid white;
             border-radius: 50% 50% 50% 0;
             transform: rotate(-45deg);
-            box-shadow: -1px 1px 4px rgba(0,0,0,0.4);
-        }
-
-        @media (max-width: 768px) {
-            #main { flex-direction: column; }
-            #side-panel { width: 100%; height: 45%; }
-            .fab-location { right: 20px; bottom: 47%; }
         }
     </style>
 </head>
 <body>
 
 <div id="header">
-    <div class="logo-text">ระบบตรวจสอบสาขา</div>
-    <div style="font-size: 0.8rem; color: #888;">ข้อมูลจาก Google Sheets</div>
+    <div style="font-weight:bold; color:var(--primary);">ระบบตรวจสอบสาขา</div>
+    <div style="font-size:12px; color:gray;">ข้อมูล Real-time</div>
 </div>
 
 <div id="main">
     <div id="map"></div>
     
-    <div class="fab-location" onclick="findMe()" title="เช็คพิกัดของคุณ">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 2C8.13 2 5 5.13 5 9C5 14.25 12 22 12 22C12 22 19 14.25 19 9C19 5.13 15.87 2 12 2ZM12 11.5C10.62 11.5 9.5 10.38 9.5 9C9.5 7.62 10.62 6.5 12 6.5C13.38 6.5 14.5 7.62 14.5 9C14.5 10.38 13.38 11.5 12 11.5Z" fill="#5f0e8a"/>
-        </svg>
+    <div class="fab-location" onclick="findMe()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--primary)"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-12-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
     </div>
 
     <div id="side-panel">
-        <div class="panel-header">
-            <h2 style="margin:0; font-size: 1.1rem;">สาขาใกล้เคียง</h2>
-        </div>
-        <div id="info-content">กำลังดึงข้อมูล...</div>
+        <div style="padding:15px; border-bottom:2px solid var(--accent); font-weight:bold;">สาขาใกล้เคียง</div>
+        <div id="info-content"></div>
     </div>
 </div>
 
@@ -132,8 +70,8 @@
 <script>
     const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRY_i5LWW_vfD8Dsxd2kwiLN50ZZhg9LZcK-JRMoZZu3TXYolGI4JDGbUE9J51z-IMrEQvtjkLQyqXP/pub?output=csv';
 
-    var map = L.map('map', { zoomControl: false }).setView([13.7563, 100.5018], 8);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
+    var map = L.map('map', {zoomControl: false}).setView([13.75, 100.50], 10);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
     var markersLayer = L.layerGroup().addTo(map);
     var userMarker;
@@ -141,7 +79,8 @@
     function loadData() {
         Papa.parse(sheetUrl, {
             download: true,
-            header: true,
+            // ปิด header: true ชั่วคราว เพื่อดึงตามลำดับคอลัมน์ ลดปัญหาชื่อหัวตารางผิด
+            header: false, 
             skipEmptyLines: true,
             complete: function(results) {
                 renderBranches(results.data);
@@ -154,56 +93,45 @@
         container.innerHTML = '';
         markersLayer.clearLayers();
 
-        data.forEach((row) => {
-            // ค้นหาพิกัดโดยตรวจสอบหลายชื่อคอลัมน์ที่เป็นไปได้
-            const latVal = row.Lat || row.lat || row.B || row.LATITUDE;
-            const lngVal = row.Long || row.lng || row.C || row.LONGITUDE || row.Lng;
+        // เริ่มที่ i=1 เพื่อข้ามหัวตาราง
+        for (let i = 1; i < data.length; i++) {
+            const row = data[i];
             
-            const lat = parseFloat(latVal);
-            const lng = parseFloat(lngVal);
-            const name = row.Name || row.name || "ไม่ระบุชื่อ";
+            // ปรับตรงนี้ตามจริง: คอลัมน์ A=row[0], B=row[1], C=row[2]
+            // สมมติ Name อยู่ A, Lat อยู่ B, Long อยู่ C
+            const name = row[0] || "ไม่ระบุชื่อ";
+            const lat = parseFloat(row[1]); 
+            const lng = parseFloat(row[2]);
 
             if (!isNaN(lat) && !isNaN(lng)) {
-                // เพิ่มหมุดสีแดง
+                // สร้างพินแดง
                 const icon = L.divIcon({
-                    className: 'custom-icon',
+                    className: 'custom-pin',
                     html: `<div class="red-pin"></div>`,
                     iconSize: [20, 20],
                     iconAnchor: [10, 20]
                 });
 
-                L.marker([lat, lng], { icon: icon }).addTo(markersLayer)
-                    .bindPopup(`<b>${name}</b>`);
+                L.marker([lat, lng], {icon: icon}).addTo(markersLayer).bindPopup(name);
 
-                // สร้างรายการด้านข้าง
+                // สร้างการ์ด
                 const card = document.createElement('div');
                 card.className = 'branch-card';
-                card.innerHTML = `
-                    <div class="branch-title">${name}</div>
-                    <div style="font-size:0.8rem; color:#666;">พิกัด: ${lat.toFixed(4)}, ${lng.toFixed(4)}</div>
-                `;
+                card.innerHTML = `<strong>${name}</strong><br><small>พิกัด: ${lat}, ${lng}</small>`;
                 card.onclick = () => map.flyTo([lat, lng], 15);
                 container.appendChild(card);
             }
-        });
-
-        if (container.innerHTML === '') {
-            container.innerHTML = '<p style="padding:20px;">ไม่พบพิกัดสาขาในไฟล์ Google Sheets</p>';
         }
     }
 
-    function findMe() {
-        map.locate({setView: true, maxZoom: 15});
-    }
-
+    function findMe() { map.locate({setView: true, maxZoom: 15}); }
+    
     map.on('locationfound', function(e) {
         if (userMarker) map.removeLayer(userMarker);
         userMarker = L.circleMarker(e.latlng, {radius: 8, color: '#5f0e8a', fillColor: '#f5eb36', fillOpacity: 1}).addTo(map);
-        userMarker.bindPopup("คุณอยู่ที่นี่").openPopup();
     });
 
     loadData();
 </script>
-
 </body>
 </html>
