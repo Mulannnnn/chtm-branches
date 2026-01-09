@@ -1,51 +1,181 @@
 <!DOCTYPE html>
-<html>
+<html lang="th">
 <head>
     <meta charset="UTF-8">
     <title>ระบบตรวจสอบสาขา Real-time</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="robots" content="noindex">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
-        body { margin: 0; font-family: sans-serif; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        #header { padding: 12px; background: white; text-align: center; border-bottom: 1px solid #ddd; font-weight: bold; }
-        #main { display: flex; flex: 1; position: relative; }
+        :root {
+            --primary: #5f0e8a;
+            --accent: #f5eb36;
+            --dark: #242222;
+            --white: #ffffff;
+            --error: #f90000;
+        }
+
+        body { 
+            margin: 0; 
+            font-family: 'Noto Sans Thai', sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh; 
+            background: #f4f4f4;
+            color: var(--dark);
+        }
+
+        /* Header Area */
+        #header { 
+            padding: 15px 20px; 
+            background: var(--white); 
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+
+        .logo-text { font-weight: 700; font-size: 1.2rem; color: var(--primary); }
+
+        #main { display: flex; flex: 1; overflow: hidden; position: relative; }
+
+        /* Map Styling */
         #map { flex: 1; z-index: 1; }
-        #side-panel { width: 300px; padding: 20px; background: #fdfdfd; border-left: 1px solid #ddd; overflow-y: auto; z-index: 10; }
-        #controls { padding: 15px; border-top: 1px solid #ddd; text-align: center; background: white; z-index: 10; }
-        .btn { background: #1a73e8; color: white; border: none; padding: 12px 24px; border-radius: 25px; cursor: pointer; font-size: 16px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-        hr { border: 0; border-top: 1px solid #eee; margin: 15px 0; }
-        @media (max-width: 768px) { #main { flex-direction: column; } #side-panel { width: 100%; height: 200px; border-left: none; border-top: 1px solid #ddd; } }
+
+        /* Side Panel (Branches List) */
+        #side-panel { 
+            width: 380px; 
+            background: var(--white); 
+            border-left: 1px solid #eee; 
+            overflow-y: auto; 
+            display: flex; 
+            flex-direction: column;
+            z-index: 10;
+        }
+
+        .panel-header {
+            padding: 20px;
+            background: var(--white);
+            position: sticky;
+            top: 0;
+            border-bottom: 2px solid var(--accent);
+        }
+
+        /* Info Card (Style as per image) */
+        .branch-card {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .branch-card:hover { background: #fafafa; }
+        .branch-title { font-weight: 700; font-size: 1.1rem; margin-bottom: 5px; }
+        .branch-status { color: #666; font-size: 0.85rem; display: flex; justify-content: space-between; }
+        .status-open { color: var(--primary); font-weight: bold; border-bottom: 2px solid var(--accent); }
+
+        .btn-more {
+            margin-top: 10px;
+            background: var(--dark);
+            color: white;
+            padding: 8px 20px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+
+        /* Tabs System inside Info */
+        .tabs { display: flex; border-bottom: 1px solid #eee; margin-top: 15px; }
+        .tab { flex: 1; padding: 10px; text-align: center; cursor: pointer; font-size: 0.9rem; font-weight: bold; }
+        .tab.active { border-bottom: 3px solid var(--primary); color: var(--primary); }
+        .tab-content { padding: 15px 0; display: none; font-size: 0.9rem; line-height: 1.6; }
+        .tab-content.active { display: block; }
+
+        /* Location Button (Yellow Guy) */
+        .fab-location {
+            position: absolute;
+            bottom: 30px;
+            right: 400px;
+            width: 50px;
+            height: 50px;
+            background: var(--accent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            cursor: pointer;
+            z-index: 1000;
+            transition: transform 0.2s;
+        }
+        .fab-location:hover { transform: scale(1.1); }
+        .fab-location img { width: 30px; }
+
+        /* Red Marker Styling */
+        .custom-pin {
+            background-color: var(--error);
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            width: 30px;
+            height: 30px;
+            border: 2px solid white;
+        }
+
+        @media (max-width: 768px) {
+            #main { flex-direction: column; }
+            #side-panel { width: 100%; height: 40%; }
+            .fab-location { right: 20px; bottom: 42%; }
+        }
     </style>
 </head>
 <body>
 
-<div id="header">🔍 ตรวจสอบสาขาใกล้บ้าน (ข้อมูลจาก Google Sheets)</div>
+<div id="header">
+    <div class="logo-text">ระบบตรวจสอบสาขา</div>
+    <div style="font-size: 0.8rem;">อัปเดตข้อมูลล่าสุดจาก Google Sheets</div>
+</div>
 
 <div id="main">
     <div id="map"></div>
+    
+    <div class="fab-location" onclick="findMe()" title="เช็คพิกัดใกล้คุณ">
+        <img src="https://maps.gstatic.com/tactile/pegman_v3/pc/2x/pegman_turtleneck_active.png" alt="Find me">
+    </div>
+
     <div id="side-panel">
-        <h3>รายละเอียดสาขา</h3>
-        <div id="info-content">กำลังโหลดข้อมูล...</div>
+        <div class="panel-header">
+            <h2 style="margin:0; font-size: 1.3rem;">รายการสาขา</h2>
+        </div>
+        <div id="info-content">
+            </div>
     </div>
 </div>
 
-<div id="controls">
-    <button class="btn" onclick="findMe()">📍 เช็คพิกัดใกล้ฉัน</button>
-</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
 
 <script>
-    // 1. ใส่ลิงก์ CSV จาก Google Sheets ของคุณที่นี่
     const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRY_i5LWW_vfD8Dsxd2kwiLN50ZZhg9LZcK-JRMoZZu3TXYolGI4JDGbUE9J51z-IMrEQvtjkLQyqXP/pub?output=csv';
 
-    var map = L.map('map').setView([13.7563, 100.5018], 6);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    // สร้างแผนที่
+    var map = L.map('map', { zoomControl: false }).setView([13.7563, 100.5018], 10);
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
         attribution: '© OpenStreetMap'
     }).addTo(map);
 
     var userMarker;
+    var markersLayer = L.layerGroup().addTo(map);
+
+    // สร้าง Custom Red Pin Icon
+    var redIcon = L.divIcon({
+        className: "custom-pin-wrapper",
+        html: `<div style="background-color:#f90000; width:20px; height:20px; border-radius:50%; border:3px solid white; box-shadow:0 0 5px rgba(0,0,0,0.5);"></div>`,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
+    });
 
     function loadData() {
         Papa.parse(sheetUrl, {
@@ -53,54 +183,98 @@
             header: true,
             skipEmptyLines: true,
             complete: function(results) {
-                renderMarkers(results.data);
-                document.getElementById('info-content').innerHTML = "เลือกสาขาบนแผนที่เพื่อดูรายละเอียด";
+                renderBranches(results.data);
             }
         });
     }
 
-    function renderMarkers(branches) {
-        branches.forEach(function(row) {
-            // ดึงค่าโดยไม่สนชื่อหัวตาราง (ใช้การตรวจสอบชื่อคอลัมน์ที่น่าจะเป็นไปได้)
-            // จากตารางของคุณ: B คือ Lat (12.xx), C คือ Long (102.xx)
-            const lat = parseFloat(row.Lat || row.Lng || row.B); 
-            const lng = parseFloat(row.Long || row.Lng_1 || row.C);
+    function renderBranches(branches) {
+        const container = document.getElementById('info-content');
+        container.innerHTML = '';
+        markersLayer.clearLayers();
+
+        branches.forEach(function(row, index) {
+            const lat = parseFloat(row.Lat || row.B);
+            const lng = parseFloat(row.Long || row.C);
+            const name = row.Name || 'สาขาไม่ระบุชื่อ';
+            const people = row.People || '0';
+            const note = row.Note || 'ไม่มีข้อมูลบริการ';
 
             if (!isNaN(lat) && !isNaN(lng)) {
-                var marker = L.marker([lat, lng]).addTo(map);
-                marker.on('click', function() {
-                    document.getElementById('info-content').innerHTML = `
-                        <p style="font-size:18px; color:#1a73e8; margin-top:0;"><strong>${row.Name || 'ไม่ระบุชื่อ'}</strong></p>
-                        <p><strong>👥 จำนวนคน:</strong> ${row.People || '0'} คน</p>
-                        <p><strong>📝 หมายเหตุ:</strong> ${row.Note || '-'}</p>
-                        <hr>
-                        <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" 
-                           target="_blank" style="display:inline-block; color: white; background: #34a853; padding: 8px 15px; border-radius: 5px; text-decoration: none; font-size: 14px;">
-                           🚗 นำทางด้วย Google Maps
-                        </a>
-                    `;
-                    map.setView([lat, lng], 15);
-                });
+                // เพิ่มหมุดสีแดงในแผนที่
+                var marker = L.marker([lat, lng], { icon: redIcon }).addTo(markersLayer);
+                
+                // สร้างการ์ดรายชื่อด้านข้าง
+                const card = document.createElement('div');
+                card.className = 'branch-card';
+                card.innerHTML = `
+                    <div class="branch-title">สาขา ${name}</div>
+                    <div class="branch-status">
+                        <span>เปิดให้บริการ</span>
+                        <span class="status-open">วันนี้ถึง 20:00</span>
+                    </div>
+                    <button class="btn-more" onclick="showDetail(${index})">รายละเอียด</button>
+                    
+                    <div id="detail-${index}" style="display:none; margin-top:15px;">
+                        <div class="tabs">
+                            <div class="tab active" onclick="switchTab(event, 'services-${index}')">บริการ</div>
+                            <div class="tab" onclick="switchTab(event, 'hours-${index}')">เวลาทำการ</div>
+                        </div>
+                        <div id="services-${index}" class="tab-content active">
+                            • จำนวนผู้รับบริการ: ${people} คน<br>
+                            • ข้อมูล: ${note}<br>
+                            <a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:var(--primary); display:block; margin-top:10px; font-weight:bold;">📍 นำทางไปที่นี่</a>
+                        </div>
+                        <div id="hours-${index}" class="tab-content">
+                            จันทร์ - ศุกร์: 09:00 - 20:00<br>
+                            เสาร์ - อาทิตย์: 10:00 - 17:00
+                        </div>
+                    </div>
+                `;
+                
+                card.onclick = () => {
+                    map.flyTo([lat, lng], 15);
+                    showDetail(index);
+                };
+                container.appendChild(card);
             }
         });
+    }
+
+    function showDetail(index) {
+        // ซ่อน Detail อื่นๆ ก่อน (Optional)
+        const details = document.querySelectorAll('[id^="detail-"]');
+        details.forEach(d => d.style.display = 'none');
+        
+        // แสดง Detail ที่เลือก
+        const target = document.getElementById(`detail-${index}`);
+        target.style.display = 'block';
+    }
+
+    function switchTab(evt, tabId) {
+        evt.stopPropagation();
+        const parent = evt.target.parentElement.parentElement;
+        parent.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        parent.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        evt.target.classList.add('active');
+        document.getElementById(tabId).classList.add('active');
     }
 
     function findMe() {
-        if (!navigator.geolocation) {
-            alert("เบราว์เซอร์ไม่รองรับระบบพิกัด");
-            return;
-        }
         map.locate({setView: true, maxZoom: 16});
     }
 
     map.on('locationfound', function(e) {
         if (userMarker) { map.removeLayer(userMarker); }
-        userMarker = L.circleMarker(e.latlng, {color: 'red', radius: 10, fillOpacity: 0.9}).addTo(map)
+        // ใช้ไอคอนคนสีเหลืองแสดงจุดที่อยู่ผู้ใช้
+        var yellowGuyIcon = L.icon({
+            iconUrl: 'https://maps.gstatic.com/tactile/pegman_v3/pc/2x/pegman_turtleneck_active.png',
+            iconSize: [30, 40],
+            iconAnchor: [15, 40]
+        });
+        userMarker = L.marker(e.latlng, {icon: yellowGuyIcon}).addTo(map)
             .bindPopup("คุณอยู่ที่นี่").openPopup();
-    });
-
-    map.on('locationerror', function() {
-        alert("กรุณาเปิดการเข้าถึงตำแหน่ง (Location)");
     });
 
     loadData();
