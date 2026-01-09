@@ -7,62 +7,72 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        :root { --primary: #5f0e8a; --accent: #f5eb36; --error: #f90000; --user-loc: #2A56FF; }
+        :root { --primary: #5f0e8a; --accent: #f5eb36; --error: #f90000; }
         body { margin: 0; font-family: 'Noto Sans Thai', sans-serif; display: flex; flex-direction: column; height: 100vh; background: #f4f4f4; }
         #header { padding: 15px 20px; background: white; display: flex; justify-content: space-between; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 1000; }
         #main { display: flex; flex: 1; position: relative; overflow: hidden; }
         #map { flex: 1; z-index: 1; }
         
         /* Side Panel */
-        #side-panel { width: 380px; background: white; border-left: 1px solid #ddd; overflow-y: auto; z-index: 10; }
-        .panel-header { padding: 20px; border-bottom: 2px solid var(--accent); position: sticky; top: 0; background: white; z-index: 11; font-weight: bold; }
+        #side-panel { width: 380px; background: white; border-left: 1px solid #ddd; overflow-y: auto; z-index: 10; display: flex; flex-direction: column; }
+        .panel-header { padding: 20px; border-bottom: 2px solid var(--accent); background: white; font-weight: bold; color: var(--primary); font-size: 1.2rem; }
+        #info-content { padding: 20px; flex: 1; }
         
-        /* Branch Card */
-        .branch-card { padding: 20px; border-bottom: 1px solid #eee; transition: 0.2s; }
-        .branch-card:hover { background: #fdfdfd; }
-        .branch-name { font-weight: 700; color: var(--primary); font-size: 1.1rem; margin-bottom: 8px; }
-        .info-row { font-size: 0.9rem; margin-bottom: 5px; color: #444; }
+        /* Information Display */
+        .branch-detail-box { animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .branch-name { font-weight: 700; color: var(--primary); font-size: 1.4rem; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .info-label { font-weight: bold; color: #666; font-size: 0.9rem; margin-top: 10px; }
+        .info-value { font-size: 1.1rem; color: var(--dark); margin-bottom: 15px; }
+        
         .btn-nav { 
-            display: inline-block; margin-top: 12px; padding: 8px 15px; 
-            background: var(--primary); color: white; text-decoration: none; 
-            border-radius: 5px; font-size: 0.85rem; transition: 0.3s;
+            display: block; width: 100%; text-align: center; margin-top: 25px; padding: 12px; 
+            background: #34a853; color: white; text-decoration: none; 
+            border-radius: 8px; font-weight: bold; transition: 0.3s;
         }
-        .btn-nav:hover { background: #4a0a6b; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .btn-nav:hover { background: #2d9147; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
 
-        /* Custom Markers */
-        .red-pin { width: 22px; height: 22px; background: var(--error); border: 2px solid white; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: -1px 1px 4px rgba(0,0,0,0.3); }
-        .user-location-dot { width: 15px; height: 15px; background: var(--user-loc); border: 3px solid white; border-radius: 50%; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
-
+        /* Markers */
+        .red-pin { width: 24px; height: 24px; background: var(--error); border: 2px solid white; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: -1px 1px 4px rgba(0,0,0,0.3); }
+        
         .fab-location {
-            position: absolute; bottom: 30px; right: 400px; width: 55px; height: 55px;
+            position: absolute; bottom: 30px; right: 400px; width: 60px; height: 60px;
             background: var(--accent); border-radius: 50%; display: flex; align-items: center;
             justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); cursor: pointer; z-index: 999;
         }
-        
+        .fab-location img { width: 35px; height: auto; }
+
+        .empty-state { text-align: center; color: #999; margin-top: 100px; padding: 20px; }
+
         @media (max-width: 768px) {
             #main { flex-direction: column; }
-            #side-panel { width: 100%; height: 40%; }
-            .fab-location { right: 20px; bottom: 42%; }
+            #side-panel { width: 100%; height: 45%; border-left: none; border-top: 1px solid #ddd; }
+            .fab-location { right: 20px; bottom: 47%; }
         }
     </style>
 </head>
 <body>
 
 <div id="header">
-    <div style="font-weight:700; color:var(--primary);">ระบบตรวจสอบสาขา</div>
-    <div style="font-size:12px; color:#666;">Data: Google Sheets</div>
+    <div style="font-weight:700; color:var(--primary);">ระบบตรวจสอบสาขา Real-time</div>
 </div>
 
 <div id="main">
     <div id="map"></div>
     
     <div class="fab-location" onclick="findMe()" title="ตำแหน่งของฉัน">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="var(--primary)"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-12-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+        <img src="https://maps.gstatic.com/tactile/pegman_v3/pc/2x/pegman_turtleneck_active.png" alt="User Location">
     </div>
 
     <div id="side-panel">
-        <div class="panel-header">รายการสาขาใกล้คุณ</div>
-        <div id="info-content"></div>
+        <div class="panel-header">ข้อมูลสาขา</div>
+        <div id="info-content">
+            <div class="empty-state">
+                <svg width="50" height="50" viewBox="0 0 24 24" fill="#ccc" style="margin-bottom:15px;"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-12-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                <br>กรุณาเลือกสาขาบนแผนที่<br>เพื่อเรียกดูข้อมูลรายละเอียด
+            </div>
+        </div>
     </div>
 </div>
 
@@ -72,8 +82,10 @@
 <script>
     const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRY_i5LWW_vfD8Dsxd2kwiLN50ZZhg9LZcK-JRMoZZu3TXYolGI4JDGbUE9J51z-IMrEQvtjkLQyqXP/pub?output=csv';
 
-    var map = L.map('map', {zoomControl: false}).setView([13.75, 100.50], 8);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
+    var map = L.map('map', {zoomControl: false}).setView([12.7, 101.5], 9);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
 
     var markersLayer = L.layerGroup().addTo(map);
     var userMarker;
@@ -81,70 +93,78 @@
     function loadData() {
         Papa.parse(sheetUrl, {
             download: true,
-            header: false, // ใช้ Index เพื่อความแม่นยำตามหน้าจอที่ส่งมา
+            header: false,
             skipEmptyLines: true,
             complete: function(results) {
-                renderBranches(results.data);
+                renderMarkers(results.data);
             }
         });
     }
 
-    function renderBranches(data) {
-        const container = document.getElementById('info-content');
-        container.innerHTML = '';
+    function renderMarkers(data) {
         markersLayer.clearLayers();
-
-        // เริ่มที่ i=1 ข้าม Header
+        // ข้าม header (i=0) เริ่มที่ i=1
         for (let i = 1; i < data.length; i++) {
             const row = data[i];
-            const name = row[0] || "ไม่ระบุชื่อ";
-            const lat = parseFloat(row[1]); // คอลัมน์ Lng ในรูปคือ Lat
-            const lng = parseFloat(row[2]); // คอลัมน์ Long
-            const people = row[3] || "-";   // คอลัมน์ People
-            const note = row[4] || "";      // คอลัมน์ Note
+            const name = row[0]; // Name
+            const lat = parseFloat(row[1]); // Lng column แต่เก็บค่า Latitude (12.xx)
+            const lng = parseFloat(row[2]); // Long column (102.xx)
+            const people = row[3] || "0";   // People
+            const note = row[4] || "-";     // Note
 
             if (!isNaN(lat) && !isNaN(lng)) {
-                // 1. สร้างหมุดสีแดงบนแผนที่
                 const icon = L.divIcon({
                     className: 'custom-div-icon',
                     html: `<div class="red-pin"></div>`,
-                    iconSize: [22, 22],
-                    iconAnchor: [11, 22]
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 24]
                 });
 
-                L.marker([lat, lng], {icon: icon}).addTo(markersLayer).bindPopup(`<b>${name}</b>`);
-
-                // 2. สร้างไซด์บาร์ข้อมูล
-                const card = document.createElement('div');
-                card.className = 'branch-card';
-                card.innerHTML = `
-                    <div class="branch-name">${name}</div>
-                    <div class="info-row">👥 จำนวนที่เปิดรับ: <b>${people}</b> ท่าน</div>
-                    ${note ? `<div class="info-row">📝 หมายเหตุ: ${note}</div>` : ''}
-                    <div class="info-row" style="color:#888; font-size:11px; margin-top:5px;">พิกัด: ${lat}, ${lng}</div>
-                    <a class="btn-nav" href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank">
-                        🚀 เปิดใน Google Maps
-                    </a>
-                `;
-                card.onclick = (e) => {
-                    if(e.target.tagName !== 'A') map.flyTo([lat, lng], 15);
-                };
-                container.appendChild(card);
+                const marker = L.marker([lat, lng], {icon: icon}).addTo(markersLayer);
+                
+                // เมื่อคลิกที่หมุด ให้แสดงข้อมูลที่ Side Panel
+                marker.on('click', function() {
+                    displayBranchInfo(name, people, note, lat, lng);
+                    map.flyTo([lat, lng], 14);
+                });
             }
         }
+    }
+
+    function displayBranchInfo(name, people, note, lat, lng) {
+        const content = document.getElementById('info-content');
+        content.innerHTML = `
+            <div class="branch-detail-box">
+                <div class="branch-name">สาขา${name}</div>
+                
+                <div class="info-label">👥 จำนวนคนที่เปิดรับ</div>
+                <div class="info-value">${people} ท่าน</div>
+                
+                <div class="info-label">📝 หมายเหตุ / ข้อมูลเพิ่มเติม</div>
+                <div class="info-value">${note}</div>
+                
+                <div class="info-label">📍 พิกัดสถานที่</div>
+                <div class="info-value" style="font-size:0.8rem; color:#888;">${lat}, ${lng}</div>
+                
+                <a class="btn-nav" href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank">
+                    🚗 นำทางด้วย Google Maps
+                </a>
+            </div>
+        `;
     }
 
     function findMe() { map.locate({setView: true, maxZoom: 15}); }
     
     map.on('locationfound', function(e) {
         if (userMarker) map.removeLayer(userMarker);
-        // แก้ไขรูปพินตำแหน่งผู้ใช้เป็น จุดสีน้ำเงิน GPS
-        const userIcon = L.divIcon({
-            className: 'user-div-icon',
-            html: `<div class="user-location-dot"></div>`,
-            iconSize: [15, 15],
-            iconAnchor: [7, 7]
+        
+        // ใช้ไอคอนคนเหลืองสำหรับตำแหน่งผู้ใช้
+        const userIcon = L.icon({
+            iconUrl: 'https://maps.gstatic.com/tactile/pegman_v3/pc/2x/pegman_turtleneck_active.png',
+            iconSize: [35, 45],
+            iconAnchor: [17, 45]
         });
+        
         userMarker = L.marker(e.latlng, {icon: userIcon}).addTo(map);
         userMarker.bindPopup("คุณอยู่ที่นี่").openPopup();
     });
